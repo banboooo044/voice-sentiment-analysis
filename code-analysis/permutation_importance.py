@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 from copy import deepcopy
 
+from src.runner import Runner
 from src.model_MLP import ModelMLP
 
 sns.set()
@@ -68,31 +69,11 @@ def score_difference_statistics(base, permuted):
         score_differences = scores - mean_base_score
         yield column_name, score_differences.mean(), score_differences.std()
 
-def load_x_train(features):
-    x = np.empty((1440, 0))
-    if "mfcc" in features:
-        matrix = np.load('../data/mfcc-aver.npz')['arr_0']
-        x = np.hstack(( x, matrix))
-        print(x.shape)
-    if "delta" in features:
-        matrix = np.load('../data/delta-aver.npz')['arr_0']
-        x = np.hstack(( x, matrix))
-        print(x.shape)
-    if "power" in features:
-        matrix = np.load('../data/power-aver.npz')['arr_0']
-        x = np.hstack(( x, matrix))
-        print(x.shape)
-    train_x = x          
-    return train_x
-
-def load_y_train():
-    return np.load('../data/label-dataset1.npz')['arr_0'].astype('int')
-
 
 
 features = ["mfcc", "delta", "power"]
-X = load_x_train(features)
-y = load_y_train()
+X = Runner.load_x_train(features)
+y = Runner.load_y_train()
 # 計測に使うモデルを用意する
 params = {
         'input_dropout': 0.0,

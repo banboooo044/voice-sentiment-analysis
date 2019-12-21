@@ -1,5 +1,7 @@
 # Dataset1 mfccの主成分分析
-import os
+import os,sys
+sys.path.append('../')
+
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
@@ -7,8 +9,9 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from src.runner import Runner
 
-X = np.load('../data/mfcc-aver.npz')['arr_0']
+X = Runner.load_x_train(["mfcc"])
 print(X.shape)
 
 #標準化
@@ -16,8 +19,8 @@ scaler = StandardScaler()
 scaler.fit(X)
 standard_X = scaler.transform(X)
 
-# 12次元へ落とす.
-dim=12
+# 12次元 -> 6次元 へ落とす.
+dim=6
 params = {
     'n_components' : dim,
     'random_state' : 71,
@@ -28,7 +31,7 @@ clf.fit(standard_X)
 pca = clf.transform(standard_X)
 
 pca = pca[:100]
-labels = np.load('../data/label-dataset1.npz')['arr_0'] 
+labels = Runner.load_y_train()
 labels = labels[:100]
 
 happy = np.empty((0, dim))

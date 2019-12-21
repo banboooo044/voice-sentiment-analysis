@@ -30,7 +30,6 @@ class ModelMLP(Model):
         super().__init__(run_fold_name, params)
 
     def train(self, tr_x, tr_y, va_x=None, va_y=None):
-        print(tr_y)
         # scaling
         validation = va_x is not None
 

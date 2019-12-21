@@ -2,6 +2,7 @@ import librosa
 from tqdm import tqdm
 import numpy as np
 import glob
+import sys
 
 def get_power(filenames):
     print("start get_power ...")
@@ -20,19 +21,23 @@ def get_power(filenames):
     return power_list
 
 if __name__ == '__main__':
-
-    # Dataset1
-    filenames = [ f"./dataset1/{i}.wav" for i in range(1, 101) ]
-
-    # Dataset1 augument
-    #filenames = [ f"./dataset1/{i}.wav" for i in range(1, 101) ] \
-    #            + [ f"./dataset1/white_noise/{i}.wav" for i in range(1, 101) ] \
-    #            + [ f"./dataset1/stretch/{i}.wav" for i in range(1, 101) ] \
-    #            + [ f"./dataset1/shift/{i}.wav" for i in range(1, 101) ]
-
-    # Dataset2
-    #filenames = glob.glob("./ravdess-emotional-speech-audio/*/*")
+    args = sys.argv
+    if args[1] == "Dataset1":
+        # Dataset1
+        filenames = [ f"./dataset1/{i}.wav" for i in range(1, 101) ]
+        output = "power-dataset1-aver"
+    elif args[1] == "Dataset1-a":
+        # Dataset1 augument
+        filenames = [ f"./dataset1/{i}.wav" for i in range(1, 101) ] \
+                + [ f"./dataset1/white_noise/{i}.wav" for i in range(1, 101) ] \
+                + [ f"./dataset1/stretch/{i}.wav" for i in range(1, 101) ] \
+                + [ f"./dataset1/shift/{i}.wav" for i in range(1, 101) ]
+        output = "power-dataset1-a-aver"
+    elif args[1] == "Dataset2":
+        # Dataset2
+        filenames = glob.glob("./ravdess-emotional-speech-audio/*/*")
+        output = "power-dataset2-aver"
 
     power_list = get_power(filenames)
-    np.savez_compressed('power-aver.npz', power_list)
+    np.savez_compressed(f'{output}.npz', power_list)
     

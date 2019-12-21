@@ -244,19 +244,25 @@ class Runner:
         """
         x = None
         if "mfcc" in features:
-            matrix = np.load('../data/mfcc-aver.npz')['arr_0']
+            matrix = np.load('../data/mfcc-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/mfcc-dataset1-a-aver.npz')['arr_0']
+            #matrix = np.load('../data/mfcc-dataset2-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:
                 x = np.hstack(( x, matrix))
         if "delta" in features:
-            matrix = np.load('../data/delta-aver.npz')['arr_0']
+            matrix = np.load('../data/delta-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/delta-dataset1-a-aver.npz')['arr_0']
+            #matrix = np.load('../data/delta-dataset2-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:
                 x = np.hstack(( x, matrix))
         if "power" in features:
-            matrix = np.load('../data/power-aver.npz')['arr_0']
+            matrix = np.load('../data/power-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/power-dataset1-a-aver.npz')['arr_0']
+            #matrix = np.load('../data/power-dataset2-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:

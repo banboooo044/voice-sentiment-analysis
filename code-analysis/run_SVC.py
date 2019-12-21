@@ -4,6 +4,7 @@ sys.path.append('../')
 import numpy as np
 import pandas as pd
 from src.runner import Runner
+from src.runner2 import RunnerLeaveOneOut
 from src.model_SVC import ModelSVC
 
 if __name__ == '__main__':
@@ -21,9 +22,10 @@ if __name__ == '__main__':
     ]
 
     params_SVC = dict(params)
-    runner = Runner(run_name='svc', model_cls=ModelSVC, features=features, params=params_SVC)
 
-    # 1回実行
-    # runner.train_fold(0)
-    # クロスバリデーションで実行
+    # Dataset1の実験
+    runner = RunnerLeaveOneOut(run_name='svc', model_cls=ModelSVC, features=features, params=params_SVC)
+    # Dataset2の実験
+    #runner = Runner(run_name='svc', model_cls=ModelSVC, features=features, params=params_SVC)
+
     runner.run_train_cv()

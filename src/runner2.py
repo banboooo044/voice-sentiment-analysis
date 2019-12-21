@@ -4,13 +4,14 @@ sys.path.append('../')
 import numpy as np
 import pandas as pd
 from sklearn.metrics import log_loss
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import LeaveOneGroupOut
 from typing import Callable, List, Optional, Tuple, Union
 from sklearn.model_selection import learning_curve
 from scipy import sparse
 from scipy.sparse import load_npz
 import matplotlib.pyplot as plt
 import seaborn as sns
+from copy import deepcopy
 
 from src.model import Model
 from src.util import Logger, Util
@@ -18,7 +19,7 @@ from src.util import Logger, Util
 sns.set()
 logger = Logger()
 
-class Runner:
+class RunnerLeaveOneOut:
     def __init__(self, run_name: str, model_cls: Callable[[str, dict], Model], features: str, params: dict):
         """コンストラクタ
         :param run_name: ランの名前
@@ -33,7 +34,7 @@ class Runner:
         self.train_x = None
         self.train_y = None
         self.test_x = None
-        self.n_fold = 6
+        self.n_fold = 100
 
     def train_fold(self, i_fold: Union[int, str]) -> Tuple[
         Model, Optional[np.array], Optional[np.array], Optional[float]]:
@@ -44,12 +45,13 @@ class Runner:
         """
         # 学習データの読込
         validation = i_fold != 'all'
-        train_x = Runner.load_x_train(self.features)
-        train_y = Runner.load_y_train()
+        train_x = RunnerLeaveOneOut.load_x_train(self.features)
+        train_y = RunnerLeaveOneOut.load_y_train()
         if validation:
             # 学習データ・バリデーションデータをセットする
             tr_idx, va_idx = self.load_index_fold(i_fold)
             tr_x, tr_y = train_x[tr_idx], train_y[tr_idx]
+            va_idx = np.array([np.min(va_idx)])
             va_x, va_y = train_x[va_idx], train_y[va_idx]
             
             # 学習を行う
@@ -70,39 +72,6 @@ class Runner:
             # モデルを返す
             return model, None, None, None
 
-    def train_fold_lr(self, i_fold: Union[int, str], lr_curve_train_sizes: List[int]) -> Tuple[
-        Model, Optional[np.array], Optional[np.array], Optional[float]]:
-        """クロスバリデーションでのfoldを指定して学習・評価を行う
-        他のメソッドから呼び出すほか、単体でも確認やパラメータ調整に用いる
-        :param i_fold: foldの番号（すべてのときには'all'とする）
-        :return: （モデルのインスタンス、レコードのインデックス、予測値、評価によるスコア）のタプル
-        """
-        # 学習データの読込
-        train_x = Runner.load_x_train(self.features)
-        train_y = self.load_y_train()
-
-        tr_idx, va_idx = self.load_index_fold(i_fold)
-        # 学習を行う
-        model = self.build_model(i_fold)
-        
-        tr_x, tr_y = train_x[tr_idx], train_y[tr_idx]
-        va_x, va_y = train_x[va_idx], train_y[va_idx]
-        
-        tr_score = np.empty(len(lr_curve_train_sizes))
-        val_score = np.empty(len(lr_curve_train_sizes))
-
-        for i, n_train_samples in enumerate(lr_curve_train_sizes):
-            model.train(tr_x[:n_train_samples], tr_y[:n_train_samples], va_x, va_y)
-            tr_score[i] = model.score(tr_x[:n_train_samples], tr_y[:n_train_samples])
-            val_score[i] = model.score(va_x, va_y)
-
-        model.train(tr_x, tr_y, va_x, va_y)
-
-        va_pred = model.predict(va_x)
-        score = model.score(va_x, va_y)
-        # モデル、インデックス、トレーニングスコア, バリデーションスコアを返す
-        return model, va_idx, va_pred, score, tr_score, val_score 
-
     def run_train_cv(self, lr_curve_train_sizes: Optional[List[int]]=None) -> None:
         """クロスバリデーションでの学習・評価を行う
         学習・評価とともに、各foldのモデルの保存、スコアのログ出力についても行う
@@ -112,22 +81,11 @@ class Runner:
         scores = []
         va_idxes = []
         preds = []
-
-        lr_curve = not (lr_curve_train_sizes is None)
-
-        if lr_curve:
-            train_scores = np.empty(( 0, len(lr_curve_train_sizes) ) , float)
-            valid_scores = np.empty(( 0, len(lr_curve_train_sizes) ) , float)
         # 各foldで学習を行う
         for i_fold in range(self.n_fold):
             # 学習を行う
             logger.info(f'{self.run_name} fold {i_fold} - start training')
-            if lr_curve:
-                model, va_idx, va_pred, score, tr_score, val_score  = self.train_fold_lr(i_fold, lr_curve_train_sizes)
-                train_scores = np.append(train_scores, tr_score.reshape(1, len(lr_curve_train_sizes)) ,axis=0)
-                valid_scores = np.append(valid_scores, val_score.reshape(1, len(lr_curve_train_sizes)),axis=0)
-            else:
-                model, va_idx, va_pred, score = self.train_fold(i_fold)
+            model, va_idx, va_pred, score = self.train_fold(i_fold)
             logger.info(f'{self.run_name} fold {i_fold} - end training - score {score}')
 
             # モデルを保存する
@@ -151,24 +109,7 @@ class Runner:
 
         # 評価結果の保存
         logger.result_scores(self.run_name, scores)
-        if lr_curve:
-            self._plot_lr_curve(lr_curve_train_sizes, train_scores, valid_scores)
             
-
-    def _plot_lr_curve(self, lr_curve_train_sizes : List[int], train_scores: np.array, valid_scores: np.array) -> None:
-        plt.style.use('seaborn-whitegrid')
-        train_mean = np.mean(train_scores, axis=0)
-        train_std  = np.std(train_scores, axis=0)
-        valid_mean = np.mean(valid_scores, axis=0)
-        valid_std  = np.std(valid_scores, axis=0)   
-        plt.plot(lr_curve_train_sizes, train_mean, color='orange', marker='o', markersize=5, label='lerning-curve')
-        plt.fill_between(lr_curve_train_sizes, train_mean + train_std, train_mean - train_std, alpha=0.1, color='orange')
-        plt.plot(lr_curve_train_sizes, valid_mean, color='darkblue', marker='o', markersize=5,label='validation accuracy')
-        plt.fill_between(lr_curve_train_sizes, valid_mean + valid_std,valid_mean - valid_std, alpha=0.1, color='darkblue') 
-        plt.xlabel('#training samples')
-        plt.ylabel('scores')
-        plt.legend(loc='lower right')
-        plt.savefig(f'../model/fig/learning-curve-{self.run_name}.png',dpi=300)
 
 
     def run_predict_cv(self) -> None:
@@ -177,7 +118,7 @@ class Runner:
         """
         logger.info(f'{self.run_name} - start prediction cv')
 
-        test_x = Runner.load_x_test(self.features)
+        test_x = RunnerLeaveOneOut.load_x_test(self.features)
 
         preds = []
 
@@ -215,7 +156,7 @@ class Runner:
         """
         logger.info(f'{self.run_name} - start prediction all')
 
-        test_x = Runner.load_x_test(self.features)
+        test_x = RunnerLeaveOneOut.load_x_test(self.features)
 
         # 学習データ全てで学習したモデルで予測を行う
         i_fold = 'all'
@@ -244,19 +185,22 @@ class Runner:
         """
         x = None
         if "mfcc" in features:
-            matrix = np.load('../data/mfcc-dataset2-aver.npz')['arr_0']
+            matrix = np.load('../data/mfcc-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/mfcc-dataset1-a-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:
                 x = np.hstack(( x, matrix))
         if "delta" in features:
-            matrix = np.load('../data/delta-dataset2-aver.npz')['arr_0']
+            matrix = np.load('../data/delta-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/delta-dataset1-a-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:
                 x = np.hstack(( x, matrix))
         if "power" in features:
-            matrix = np.load('../data/power-dataset2-aver.npz')['arr_0']
+            matrix = np.load('../data/power-dataset1-aver.npz')['arr_0']
+            #matrix = np.load('../data/power-dataset1-a-aver.npz')['arr_0']
             if x is None:
                 x = matrix
             else:
@@ -268,8 +212,12 @@ class Runner:
         """学習データの目的変数を読み込む
         :return: 学習データの目的変数
         """
-        # Dataset2
-        labels = np.load('../data/label-dataset2.npz')['arr_0'].astype('int')
+        # Dataset1
+        labels = np.load('../data/label-dataset1.npz')['arr_0'].astype('int')
+
+        # Dataset1 Augumented
+        # label = np.load('../data/label-dataset1.npz')['arr_0'].astype('int')
+        # labels = np.array([ deepcopy(label) for _ in range(4) ]).flatten()
         
         return labels
 
@@ -286,9 +234,7 @@ class Runner:
         :param i_fold: foldの番号
         :return: foldに対応するレコードのインデックス
         """
-        # 学習データ・バリデーションデータを分けるインデックスを返す
-        # ここでは乱数を固定して毎回作成しているが、ファイルに保存する方法もある
-        train_y = Runner.load_y_train()
+        train_y = RunnerLeaveOneOut.load_y_train()
         dummy_x = np.zeros(len(train_y))
-        skf = StratifiedKFold(n_splits=self.n_fold, shuffle=True, random_state=71)
-        return list(skf.split(dummy_x, train_y))[i_fold]
+        skf = LeaveOneGroupOut()
+        return list(skf.split(dummy_x, train_y, groups=[i%100 for i in range(len(train_y))]))[i_fold]

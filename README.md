@@ -31,14 +31,16 @@
 * power.py : パワーの行列データを作成
 
 ## 4. 分析プログラム
+
 ### src/ : 汎用的なプログラム(他のプログラムから呼び出して使う再利用性の高いもの)
 
 * model.py : Modelクラスは学習, 予測, モデルの保存やロードを行う.Modelクラスを継承して, 分類アルゴリズムごとのクラスを作る.
-  * model_SVC : ナイーブベイズ(多項分布モデル)
+  * model_SVC : サポートベクトルマシン
   * model_MLP : Multilayer Perceptron
   
-* runner.py : Runnerクラスはクロスバリデーションなども含めた学習, 評価, 予測を行うためのクラス.Modelクラスを継承しているプログラムを渡す.
-(読み込むデータの種類の変更 Dataset1 or Dataset1-augmented or Dataset2 は手動でRunner.load_x_train() のところを直して)
+* runner.py : Stratified 6-foldで学習, 評価, 予測を行うためのクラス.Modelクラスを継承しているプログラムを渡す.(Dataset2用)
+
+* runner2.py : LeaveOneOutで学習, 評価, 予測を行うためのクラス.Modelクラスを継承しているプログラムを渡す.(Dataset1用(Augumentedにするときはload_x_train()を手動で直して))
 
 * util.py : ファイルの入出力, ログの出力や表示, 計算結果の表示や出力を行うクラス
 

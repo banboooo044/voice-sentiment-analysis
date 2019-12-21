@@ -34,7 +34,7 @@ class ModelMLP(Model):
         validation = va_x is not None
 
         # パラメータ
-        nb_classes = 8
+        nb_classes = self.params['nb_class']
         input_dropout = self.params['input_dropout']
         hidden_layers = int(self.params['hidden_layers'])
         hidden_units = int(self.params['hidden_units'])

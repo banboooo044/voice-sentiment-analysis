@@ -6,10 +6,12 @@ sys.path.append('../')
 import numpy as np
 import pandas as pd
 from src.runner import Runner
+from src.runner2 import RunnerLeaveOneOut
 from src.model_MLP import ModelMLP
 
 if __name__ == '__main__':
     base_params=  {
+        'nb_class' : 4,
         'input_dropout': 0.0,
         'hidden_layers': 3,
         'hidden_units': 96,
@@ -30,10 +32,12 @@ if __name__ == '__main__':
     ]
 
     params_MLP = dict(base_params)
-    runner = Runner(run_name='MLP1', model_cls=ModelMLP, features=features, params=params_MLP)
-    
-    # 1回実行
-    # runner.train_fold(0)
-    # クロスバリデーションで実行
+
+    # Dataset1
+    runner = RunnerLeaveOneOut(run_name='MLP1', model_cls=ModelMLP, features=features, params=params_MLP)
+
+    # Dataset2
+    #runner = Runner(run_name='MLP1', model_cls=ModelMLP, features=features, params=params_MLP)
+
     runner.run_train_cv()
 

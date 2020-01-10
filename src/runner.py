@@ -261,6 +261,7 @@ class Runner:
                 x = matrix
             else:
                 x = np.hstack(( x, matrix))
+        
         return x
 
     @classmethod
@@ -269,7 +270,7 @@ class Runner:
         :return: 学習データの目的変数
         """
         # Dataset2
-        labels = np.load('../data/label-dataset2.npz')['arr_0'].astype('int')
+        labels = np.load('../data/label-dataset2.npz')['arr_0'].astype('int') - 1
         
         return labels
 

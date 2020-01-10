@@ -70,10 +70,10 @@ def score_difference_statistics(base, permuted):
         yield column_name, score_differences.mean(), score_differences.std()
 
 
-
 features = ["mfcc", "delta", "power"]
 X = Runner.load_x_train(features)
 y = Runner.load_y_train()
+
 # 計測に使うモデルを用意する
 params = {
         'input_dropout': 0.0,
@@ -85,7 +85,9 @@ params = {
         'optimizer': {'type': 'adam', 'lr': 0.001},
         'batch_size': 64,
         'nb_epoch': 1000,
+        'nb_class' : 8,
 }
+
 p = {'batch_norm': 'no', 'batch_size': 64.0, 'hidden_activation': 'prelu', 'hidden_dropout': 0.45, 'hidden_layers': 3.0, 'hidden_units': 224.0, 'input_dropout': 0.2, 
     'optimizer': {'lr': 0.00091, 'type': 'adam'}}
 params.update(p)
@@ -113,4 +115,4 @@ plt.xlabel('column')
 plt.ylabel('difference')
 plt.plot()
 os.makedirs('./fig', exist_ok=True)
-plt.savefig('./fig/permutation.png',dpi=300)
+#plt.savefig('./fig/permutation.png',dpi=300)

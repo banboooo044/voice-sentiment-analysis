@@ -29,19 +29,17 @@ if __name__ == '__main__':
     ]
     
     feature = [
-        ["mfcc", "delta", "power"]
+        "mfcc", "delta", "power"
     ]
-
     results = [ ]
     x = Runner.load_x_train(feature)
     y = Runner.load_y_train()
+    
     model = ModelSVC("SVC", **params_SVC)
     search = GridSearchCV( model, cv=5, param_grid=param_grid_ , return_train_score=True )
     search.fit(x, y)
     results.append( (search, feature) )
     logger.info(f'{feature} - bestscore : {search.best_score_} - result :{search.best_params_}')
 
-
     for search, name in results:
         logger.info(f'{name} - bestscore : {search.best_score_}')
-    

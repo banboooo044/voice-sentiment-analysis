@@ -35,9 +35,9 @@ if __name__ == '__main__':
         output = "power-dataset1-a-aver"
     elif args[1] == "Dataset2":
         # Dataset2
-        filenames = glob.glob("./ravdess-emotional-speech-audio/*/*")
+        filenames = glob.glob("./dataset2/*/*")
         output = "power-dataset2-aver"
-
+        
     power_list = get_power(filenames)
     np.savez_compressed(f'{output}.npz', power_list)
     
